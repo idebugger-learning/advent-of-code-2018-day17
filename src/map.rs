@@ -7,7 +7,8 @@ use crate::parser::Rows;
 enum Tile {
     Clay,
     Sand,
-    Water,
+    StillWater,
+    RunningWater,
 }
 
 pub struct Map {
@@ -57,7 +58,7 @@ impl Map {
             }
         }
 
-        tiles[500 - min_x] = Tile::Water;
+        tiles[500 - min_x] = Tile::RunningWater;
 
         Map {
             tiles,
@@ -109,8 +110,8 @@ impl Map {
 
         if y < self.max_y {
             let below = self.get(x, y + 1);
-            if matches!(below, Tile::Sand | Tile::Water) {
-                self.set(x, y + 1, Tile::Water);
+            if matches!(below, Tile::Sand | Tile::RunningWater) {
+                self.set(x, y + 1, Tile::RunningWater);
                 self.queue.push_back((x, y + 1));
                 self.backtrack.push_back((x, y));
                 return;
@@ -118,12 +119,12 @@ impl Map {
 
             if matches!(below, Tile::Clay) {
                 if self.get(x - 1, y) == Tile::Sand {
-                    self.set(x - 1, y, Tile::Water);
+                    self.set(x - 1, y, Tile::RunningWater);
                     self.queue.push_back((x - 1, y));
                 }
 
                 if self.get(x + 1, y) == Tile::Sand {
-                    self.set(x + 1, y, Tile::Water);
+                    self.set(x + 1, y, Tile::RunningWater);
                     self.queue.push_back((x + 1, y));
                 }
 
@@ -144,11 +145,11 @@ impl Map {
         if self.is_full_waterline(x, y + 1) && self.get(x - 1, y) != Tile::Clay {
             let mut left = x;
             while self.get(left, y + 1) != Tile::Clay && self.get(left, y) != Tile::Clay && left > self.min_x {
-                self.set(left, y, Tile::Water);
+                self.set(left, y, Tile::RunningWater);
                 left -= 1;
             }
             if self.get(left, y) != Tile::Clay {
-                self.set(left, y, Tile::Water);
+                self.set(left, y, Tile::RunningWater);
                 self.queue.push_back((left, y));
             }
         }
@@ -156,11 +157,11 @@ impl Map {
         if self.is_full_waterline(x, y + 1) && self.get(x + 1, y) != Tile::Clay {
             let mut right = x;
             while self.get(right, y + 1) != Tile::Clay && self.get(right, y) != Tile::Clay && right < self.min_x + self.width - 1 {
-                self.set(right, y, Tile::Water);
+                self.set(right, y, Tile::RunningWater);
                 right += 1;
             }
             if self.get(right, y) != Tile::Clay {
-                self.set(right, y, Tile::Water);
+                self.set(right, y, Tile::RunningWater);
                 self.queue.push_back((right, y));
             }
         }
@@ -172,28 +173,60 @@ impl Map {
 
     fn is_full_waterline(&self, x: usize, y: usize) -> bool {
         let mut left = x;
-        while self.get(left, y) == Tile::Water && left > self.min_x {
+        while self.get(left, y) == Tile::RunningWater && left > self.min_x {
             left -= 1;
         }
-        if !matches!(self.get(left, y), Tile::Clay | Tile::Water) {
+        if !matches!(self.get(left, y), Tile::Clay | Tile::RunningWater) {
             return false;
         }
 
         let mut right = x;
-        while self.get(right, y) == Tile::Water && right < self.min_x + self.width - 1 {
+        while self.get(right, y) == Tile::RunningWater && right < self.min_x + self.width - 1 {
             right += 1;
         }
-        if !matches!(self.get(right, y), Tile::Clay | Tile::Water) {
+        if !matches!(self.get(right, y), Tile::Clay | Tile::RunningWater) {
             return false;
         }
 
         return true;
     }
 
-    pub fn count_water(&self) -> usize {
+    pub fn process_still_water(&mut self) {
+        for y in self.min_y..=self.max_y {
+            for x in self.min_x..(self.min_x + self.width) {
+                if self.get(x, y) == Tile::RunningWater {
+                    if self.is_full_waterline(x, y) {
+                        self.set(x, y, Tile::StillWater);
+                        let mut left = x - 1;
+                        while self.get(left, y) == Tile::RunningWater {
+                            self.set(left, y, Tile::StillWater);
+                            left -= 1;
+                        }
+                        let mut right = x + 1;
+                        while self.get(right, y) == Tile::RunningWater {
+                            self.set(right, y, Tile::StillWater);
+                            right += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn count_all_water(&self) -> usize {
         let mut count = 0;
         for y in self.tiles.iter() {
-            if matches!(y, Tile::Water) {
+            if matches!(y, Tile::RunningWater | Tile::StillWater) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn count_still_water(&self) -> usize {
+        let mut count = 0;
+        for y in self.tiles.iter() {
+            if matches!(y, Tile::StillWater) {
                 count += 1;
             }
         }
@@ -231,7 +264,8 @@ impl Display for Map {
                 let c = match tile {
                     Tile::Clay => "🟫",
                     Tile::Sand => "◼️",
-                    Tile::Water => "🟦",
+                    Tile::StillWater => "🟦",
+                    Tile::RunningWater => "💧",
                 };
                 write!(f, "{}", c)?;
             }

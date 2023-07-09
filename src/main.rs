@@ -16,10 +16,12 @@ fn main() {
     // println!("{}", map);
 
     while map.tick() {
-        println!("{}", map);
-        thread::sleep(TIMEOUT);
+        // println!("{}", map);
+        // thread::sleep(TIMEOUT);
     }
 
+    map.process_still_water();
     println!("{}", map);
-    println!("Water tiles count: {}", map.count_water());
+    println!("All water tiles count: {}", map.count_all_water());
+    println!("Still water tiles count: {}", map.count_still_water());
 }
