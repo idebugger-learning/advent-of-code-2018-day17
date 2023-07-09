@@ -5,7 +5,7 @@ use crate::map::Map;
 mod parser;
 mod map;
 
-const TIMEOUT: Duration = Duration::from_millis(50);
+const TIMEOUT: Duration = Duration::from_millis(100);
 
 fn main() {
     let input = include_str!("../inputs/input.txt");
@@ -16,8 +16,8 @@ fn main() {
     // println!("{}", map);
 
     while map.tick() {
-        // println!("{}", map);
-        // thread::sleep(TIMEOUT);
+        println!("{}", map);
+        thread::sleep(TIMEOUT);
     }
 
     println!("{}", map);

@@ -229,9 +229,9 @@ impl Display for Map {
             for x in self.min_x..(self.min_x + self.width) {
                 let tile = self.get(x, y);
                 let c = match tile {
-                    Tile::Clay => '#',
-                    Tile::Sand => ' ',
-                    Tile::Water => '~',
+                    Tile::Clay => "🟫",
+                    Tile::Sand => "◼️",
+                    Tile::Water => "🟦",
                 };
                 write!(f, "{}", c)?;
             }
